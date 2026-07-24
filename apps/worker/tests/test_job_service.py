@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from product_twin.job_service import JobProcessingError, process_job
