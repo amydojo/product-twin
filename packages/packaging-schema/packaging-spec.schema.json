@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://product-twin.dev/schema/packaging-spec.schema.json",
+  "title": "Product Twin Packaging Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion","archetype","dimensions","body","closure","liquid","label","render","provenance"],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "archetype": {"const": "round-dropper"},
+    "dimensions": {"type":"object","additionalProperties":false,"required":["heightMm","bodyDiameterMm","neckDiameterMm","capHeightMm","wallThicknessMm"],"properties":{"heightMm":{"type":"number","exclusiveMinimum":20,"maximum":400},"bodyDiameterMm":{"type":"number","exclusiveMinimum":5,"maximum":200},"neckDiameterMm":{"type":"number","exclusiveMinimum":3,"maximum":80},"capHeightMm":{"type":"number","exclusiveMinimum":5,"maximum":120},"wallThicknessMm":{"type":"number","exclusiveMinimum":0.2,"maximum":8}}},
+    "body": {"type":"object","additionalProperties":false,"required":["shoulderStartRatio","shoulderCurvature","material","colorHex","roughness","transmission","ior"],"properties":{"shoulderStartRatio":{"type":"number","minimum":0.45,"maximum":0.95},"shoulderCurvature":{"type":"number","minimum":0,"maximum":1},"material":{"enum":["clear-glass","frosted-glass","glossy-plastic","matte-plastic"]},"colorHex":{"$ref":"#/$defs/color"},"roughness":{"type":"number","minimum":0,"maximum":1},"transmission":{"type":"number","minimum":0,"maximum":1},"ior":{"type":"number","minimum":1,"maximum":2.5}}},
+    "closure": {"type":"object","additionalProperties":false,"required":["type","material","colorHex","roughness"],"properties":{"type":{"const":"dropper"},"material":{"enum":["glossy-plastic","matte-plastic","metal"]},"colorHex":{"$ref":"#/$defs/color"},"roughness":{"type":"number","minimum":0,"maximum":1}}},
+    "liquid": {"type":"object","additionalProperties":false,"required":["enabled","fillPercent","colorHex","opacity"],"properties":{"enabled":{"type":"boolean"},"fillPercent":{"type":"number","minimum":0,"maximum":100},"colorHex":{"$ref":"#/$defs/color"},"opacity":{"type":"number","minimum":0,"maximum":1}}},
+    "label": {"type":"object","additionalProperties":false,"required":["mode","placement","artworkAssetId","widthRatio","heightRatio","verticalCenterRatio"],"properties":{"mode":{"enum":["uploaded-artwork","none"]},"placement":{"const":"front-decal"},"artworkAssetId":{"type":["string","null"],"format":"uuid"},"widthRatio":{"type":"number","exclusiveMinimum":0,"maximum":0.95},"heightRatio":{"type":"number","exclusiveMinimum":0,"maximum":0.8},"verticalCenterRatio":{"type":"number","minimum":0.15,"maximum":0.85}}},
+    "render": {"type":"object","additionalProperties":false,"required":["preset","resolution","transparentBackground"],"properties":{"preset":{"const":"clean-studio"},"resolution":{"type":"integer","minimum":512,"maximum":4096},"transparentBackground":{"type":"boolean"}}},
+    "provenance": {"type":"object","additionalProperties":false,"required":["inferredFromAssetIds","analysisProvider","confidence"],"properties":{"inferredFromAssetIds":{"type":"array","items":{"type":"string","format":"uuid"},"uniqueItems":true},"analysisProvider":{"enum":["manual","birefnet","deterministic-fixture","noop"]},"confidence":{"type":["number","null"],"minimum":0,"maximum":1}}}
+  },
+  "$defs":{"color":{"type":"string","pattern":"^#[0-9A-Fa-f]{6}$"}},
+  "allOf":[{"if":{"properties":{"liquid":{"properties":{"enabled":{"const":false}}}}},"then":{"properties":{"liquid":{"properties":{"fillPercent":{"const":0}}}}}}]
+}

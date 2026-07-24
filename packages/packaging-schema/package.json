@@ -1,0 +1,25 @@
+{
+  "name": "@product-twin/packaging-schema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./packaging-spec.schema.json"
+  },
+  "scripts": {
+    "lint": "eslint src tests",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "eslint": "9.32.0",
+    "typescript": "6.0.2",
+    "vitest": "4.1.10",
+    "typescript-eslint": "8.65.0"
+  }
+}

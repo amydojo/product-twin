@@ -1,0 +1,68 @@
+name: Blender authoritative
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/worker/product_twin/blender/**
+      - apps/worker/product_twin/service.py
+      - scripts/check_render_outputs.py
+      - packages/test-fixtures/round-dropper/**
+      - .github/workflows/blender-smoke.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/worker/product_twin/blender/**
+      - apps/worker/product_twin/service.py
+      - scripts/check_render_outputs.py
+      - packages/test-fixtures/round-dropper/**
+      - .github/workflows/blender-smoke.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    name: Authoritative Blender render
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node scripts/materialize_fixtures.mjs
+      - run: sudo apt-get update && sudo apt-get install -y blender libegl1 libgl1
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.16"
+      - run: uv sync --project apps/worker --frozen --extra dev
+      - name: Render authoritative Blender fixture
+        run: |
+          mkdir -p apps/worker/tmp
+          set -euo pipefail
+          uv run --project apps/worker product-twin render-fixture \
+            --no-fallback \
+            --spec packages/test-fixtures/round-dropper/spec.json \
+            --label packages/test-fixtures/round-dropper/label.png \
+            --output apps/worker/tmp/blender-smoke 2>&1 | tee apps/worker/tmp/blender-smoke.log
+      - name: Verify PNG, GLB, and manifest outputs
+        run: |
+          uv run --project apps/worker python scripts/check_render_outputs.py \
+            apps/worker/tmp/blender-smoke \
+            | tee apps/worker/tmp/blender-verification.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: product-twin-blender-fixture
+          path: |
+            apps/worker/tmp/blender-smoke
+            apps/worker/tmp/blender-smoke.log
+            apps/worker/tmp/blender-verification.json
+          if-no-files-found: warn
