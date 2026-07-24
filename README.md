@@ -136,7 +136,7 @@ The dedicated **Blender authoritative** workflow installs Blender, renders the f
 
 ## Deployment
 
-- **Vercel:** import the repository root so `vercel.json` can build the `apps/web` workspace with the committed frozen lockfile. Configure only publishable Supabase values plus server-only worker values. Fixture previews set `PRODUCT_TWIN_FIXTURE_MODE=true` and display that state in the masthead. Blender never runs in Vercel Functions.
+- **Vercel:** set the project Root Directory to `apps/web`; its app-relative `vercel.json` installs from the detected pnpm workspace with the committed frozen lockfile. Configure only publishable Supabase values plus server-only worker values. Fixture previews set `PRODUCT_TWIN_FIXTURE_MODE=true` and display that state in the masthead. Blender never runs in Vercel Functions.
 - **Supabase:** apply every committed migration in timestamp order with `supabase db push`. The historical prototype migration is followed by a guarded reconciliation and foreign-key indexes; both current buckets remain private and all exposed tables use RLS.
 - **Hugging Face:** create a Docker Space from `infra/huggingface-space`, build with an immutable `PRODUCT_TWIN_REF`, then add Supabase and a 32-byte-or-longer HMAC value as Space secrets. The unprivileged free CPU baseline renders deterministic Blender output without a GPU.
 
