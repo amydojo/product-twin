@@ -16,10 +16,11 @@ test("deterministic fixture happy path", async ({ page }) => {
 
   await expect(page.getByText("Generated twin")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByLabel("Interactive GLB product twin viewer")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Studio renders" })).toBeVisible();
-  await expect(page.getByText("Front transparent PNG")).toBeVisible();
-  await expect(page.getByText("Three-quarter transparent PNG")).toBeVisible();
-  await expect(page.getByText("White-background ecommerce PNG")).toBeVisible();
+  const studioRenders = page.getByRole("region", { name: "Studio renders" });
+  await expect(studioRenders).toBeVisible();
+  await expect(studioRenders.getByText("Front transparent PNG")).toBeVisible();
+  await expect(studioRenders.getByText("Three-quarter transparent PNG")).toBeVisible();
+  await expect(studioRenders.getByText("White-background ecommerce PNG")).toBeVisible();
 
   const glbRow = page.getByText("GLB model").locator("..");
   const glbDownload = glbRow.getByRole("link", { name: "Download" });
