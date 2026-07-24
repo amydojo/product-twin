@@ -78,7 +78,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
-    print(json.dumps(check(args.output), indent=2))
+    try:
+        print(json.dumps(check(args.output), indent=2))
+    except Exception as exc:
+        diagnostics = {
+            "output": str(args.output),
+            "files": {
+                path.name: path.stat().st_size
+                for path in args.output.iterdir()
+                if path.is_file()
+            } if args.output.is_dir() else {},
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+        print(json.dumps(diagnostics, indent=2))
+        raise
 
 
 if __name__ == "__main__":
