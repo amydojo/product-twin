@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {createClient} from "@/lib/supabase/server";
+export async function POST(){if(process.env.PRODUCT_TWIN_FIXTURE_MODE==='true')return NextResponse.json({fixture:true});const supabase=await createClient();const {data,error}=await supabase.auth.signInAnonymously();if(error)return NextResponse.json({error:error.message},{status:400});return NextResponse.json({userId:data.user?.id})}

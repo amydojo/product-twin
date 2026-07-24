@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "archetype": "round-dropper",
+  "dimensions": {
+    "heightMm": 120,
+    "bodyDiameterMm": 42,
+    "neckDiameterMm": 18,
+    "capHeightMm": 34,
+    "wallThicknessMm": 2
+  },
+  "body": {
+    "shoulderStartRatio": 0.78,
+    "shoulderCurvature": 0.45,
+    "material": "frosted-glass",
+    "colorHex": "#d8d2c7",
+    "roughness": 0.32,
+    "transmission": 0.9,
+    "ior": 1.5
+  },
+  "closure": {
+    "type": "dropper",
+    "material": "matte-plastic",
+    "colorHex": "#181818",
+    "roughness": 0.4
+  },
+  "liquid": {
+    "enabled": true,
+    "fillPercent": 78,
+    "colorHex": "#d8ad70",
+    "opacity": 0.72
+  },
+  "label": {
+    "mode": "uploaded-artwork",
+    "placement": "front-decal",
+    "artworkAssetId": null,
+    "widthRatio": 0.62,
+    "heightRatio": 0.35,
+    "verticalCenterRatio": 0.48
+  },
+  "render": {
+    "preset": "clean-studio",
+    "resolution": 1600,
+    "transparentBackground": true
+  },
+  "provenance": {
+    "inferredFromAssetIds": [],
+    "analysisProvider": "deterministic-fixture",
+    "confidence": 1.0
+  }
+}

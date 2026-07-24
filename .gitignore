@@ -1,0 +1,24 @@
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.tsbuildinfo
+apps/worker/tmp/
+apps/worker/.model-cache/
+.vercel/
+.supabase/
+.DS_Store
+# Generated deterministic fixture outputs.
+apps/web/public/fixture/*.png
+apps/web/public/fixture/*.glb
+docs/evidence/*.png
+docs/evidence/*.glb
+packages/test-fixtures/round-dropper/*.png

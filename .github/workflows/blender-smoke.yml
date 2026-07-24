@@ -1,0 +1,41 @@
+name: Blender smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/worker/product_twin/blender/**
+      - apps/worker/product_twin/service.py
+      - scripts/check_render_outputs.py
+      - packages/test-fixtures/round-dropper/**
+      - .github/workflows/blender-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node scripts/materialize_fixtures.mjs
+      - run: sudo apt-get update && sudo apt-get install -y blender
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.16"
+      - run: uv sync --project apps/worker --extra dev
+      - run: >-
+          uv run --project apps/worker product-twin render-fixture
+          --no-fallback
+          --spec packages/test-fixtures/round-dropper/spec.json
+          --label packages/test-fixtures/round-dropper/label.png
+          --output apps/worker/tmp/blender-smoke
+      - run: uv run --project apps/worker python scripts/check_render_outputs.py apps/worker/tmp/blender-smoke
+      - uses: actions/upload-artifact@v6
+        with:
+          name: product-twin-blender-fixture
+          path: apps/worker/tmp/blender-smoke

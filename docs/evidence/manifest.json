@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "renderer": "deterministic-fixture",
+  "renderEngine": "dependency-free Node fixture generator",
+  "renderResolution": 800,
+  "generatedObjectNames": ["BODY", "BODY_INNER", "NECK", "CLOSURE", "DROPPER_BULB", "PIPETTE", "LIQUID", "LABEL"],
+  "outputFilenames": ["front.png", "three-quarter.png", "ecommerce.png", "product.glb"],
+  "durationsSeconds": {"total": 0},
+  "warnings": ["Fixture evidence is generated without Blender; authoritative Blender smoke runs in dedicated CI."],
+  "fileSizes": {"product.glb": 2128},
+  "sourceGitCommit": null
+}

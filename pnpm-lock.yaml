@@ -1,0 +1,11 @@
+lockfileVersion: '9.0'
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+importers:
+  .: {}
+  apps/web:
+    dependencies:
+      '@product-twin/packaging-schema': {specifier: workspace:*, version: link:../../packages/packaging-schema}
+  packages/packaging-schema: {}
+  packages/test-fixtures: {}
