@@ -50,6 +50,16 @@ def git_commit() -> str | None:
     return value or None
 
 
+def composite_over_white(path: Path) -> None:
+    from PIL import Image
+
+    with Image.open(path) as image:
+        rgba = image.convert("RGBA")
+        white = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+        white.alpha_composite(rgba)
+        white.convert("RGB").save(path, format="PNG")
+
+
 def main() -> None:
     import bpy
 
@@ -130,15 +140,18 @@ def main() -> None:
     render_plan = [
         ("CAM_FRONT", "front.png", True),
         ("CAM_THREE_QUARTER", "three-quarter.png", True),
-        ("CAM_ECOM", "ecommerce.png", False),
+        ("CAM_ECOM", "ecommerce.png", True),
     ]
     for camera_name, filename, transparent in render_plan:
         stage_started = time.perf_counter()
         bpy.context.scene.camera = cameras[camera_name]
         bpy.context.scene.render.film_transparent = transparent
         ground.hide_render = transparent
-        bpy.context.scene.render.filepath = str(output / filename)
+        output_path = output / filename
+        bpy.context.scene.render.filepath = str(output_path)
         bpy.ops.render.render(write_still=True)
+        if filename == "ecommerce.png":
+            composite_over_white(output_path)
         stages[filename] = time.perf_counter() - stage_started
 
     stage_started = time.perf_counter()
