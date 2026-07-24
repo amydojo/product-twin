@@ -22,7 +22,6 @@ class BiRefNetProvider:
     def __init__(self,model_id:str,revision:str,cache_dir:Path): self.model_id=model_id; self.revision=revision; self.cache_dir=cache_dir; self._model=None
     def _load(self):
         try:
-            import torch
             from transformers import AutoModelForImageSegmentation
         except ImportError as exc: raise RuntimeError('Install worker model extras: uv sync --extra models') from exc
         try:
@@ -31,6 +30,7 @@ class BiRefNetProvider:
         except Exception as exc: raise RuntimeError(f'BiRefNet load failed for pinned revision {self.revision}: {exc}') from exc
         return self._model
     def remove_background(self,image_path:Path,output_dir:Path)->BackgroundRemovalResult:
+        # Remote code is intentionally pinned and isolated behind this adapter. Production rollout requires repository review.
         model=self._model or self._load()
         try:
             import torch
