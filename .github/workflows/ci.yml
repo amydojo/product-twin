@@ -89,7 +89,7 @@ jobs:
           set -o pipefail
           uv run --project apps/worker ruff check apps/worker/product_twin apps/worker/tests 2>&1 | tee apps/worker/tmp/ruff.log
       - run: uv run --project apps/worker pytest apps/worker/tests
-      - run: python scripts/check_schema_parity.py
+      - run: uv run --project apps/worker python scripts/check_schema_parity.py
       - run: python scripts/scan_secrets.py
       - uses: actions/upload-artifact@v6
         if: always()
