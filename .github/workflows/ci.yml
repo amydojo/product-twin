@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@v6
         with:
           version: 11.15.1
@@ -71,6 +73,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@v6
         with:
           version: 11.15.1
@@ -107,6 +111,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.11.16"
@@ -136,16 +142,20 @@ jobs:
     name: Worker Space package
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Build exact-commit Docker Space image
         run: |
           set -euo pipefail
           mkdir -p apps/worker/tmp
           docker build \
-            --build-arg "PRODUCT_TWIN_REF=${GITHUB_SHA}" \
+            --build-arg "PRODUCT_TWIN_REF=${SOURCE_SHA}" \
             --file infra/huggingface-space/Dockerfile \
-            --tag product-twin-space:${GITHUB_SHA} \
+            --tag product-twin-space:${SOURCE_SHA} \
             . 2>&1 | tee apps/worker/tmp/space-build.log
       - name: Start Space and verify health
         run: |
@@ -153,7 +163,7 @@ jobs:
           docker run --detach \
             --name product-twin-space \
             --publish 7860:7860 \
-            "product-twin-space:${GITHUB_SHA}"
+            "product-twin-space:${SOURCE_SHA}"
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:7860/health > apps/worker/tmp/space-health.json; then
               break
@@ -176,7 +186,7 @@ jobs:
           docker exec --workdir /opt/product-twin product-twin-space \
             python3 scripts/check_render_outputs.py /tmp/blender-smoke \
             | tee apps/worker/tmp/space-render-verification.json
-          docker exec --env "EXPECTED_SHA=${GITHUB_SHA}" product-twin-space \
+          docker exec --env "EXPECTED_SHA=${SOURCE_SHA}" product-twin-space \
             python3 -c 'import json, os; manifest=json.load(open("/tmp/blender-smoke/manifest.json")); assert manifest["sourceGitCommit"] == os.environ["EXPECTED_SHA"]'
           docker exec product-twin-space sh -c \
             'test ! -d "$HF_HOME" || test -z "$(find "$HF_HOME" -mindepth 1 -print -quit)"'
@@ -198,6 +208,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0

@@ -19,7 +19,7 @@ RUN git init /opt/product-twin \
 WORKDIR /opt/product-twin/apps/worker
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
     -r requirements.lock.txt \
-    && useradd --create-home --uid 1000 producttwin \
+    && useradd --system --create-home --user-group producttwin \
     && mkdir -p /data \
     && chown -R producttwin:producttwin /opt/product-twin /data
 
