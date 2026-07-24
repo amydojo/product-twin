@@ -4,6 +4,9 @@ import { defineConfig } from "vitest/config";
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
-  test: { environment: "jsdom" },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
+  },
   resolve: { alias: { "@": root } },
 });
