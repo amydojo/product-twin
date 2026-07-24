@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     supabase_url: str | None = None
     supabase_service_role_key: str | None = None
-    product_twin_internal_secret: str = "development-only-change-me-32-bytes"
+    product_twin_internal_secret: str | None = None
     product_twin_fixture_mode: bool = True
     product_twin_worker_id: str = "product-twin-worker"
     product_twin_background_provider: str = "deterministic-fixture"
@@ -23,7 +23,6 @@ class Settings(BaseSettings):
             self.supabase_url
             and self.supabase_service_role_key
             and self.product_twin_internal_secret
-            and self.product_twin_internal_secret != "development-only-change-me-32-bytes"
         )
 
 
