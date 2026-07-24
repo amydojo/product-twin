@@ -1,3 +1,9 @@
 packages:
   - apps/web
   - packages/*
+
+# pnpm 11 blocks all dependency build scripts unless they are reviewed explicitly.
+# sharp is used by Next.js image tooling; unrs-resolver provides ESLint's native resolver.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
