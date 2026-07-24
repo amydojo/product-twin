@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
@@ -53,7 +53,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @product-twin/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
         env:
@@ -68,9 +68,12 @@ jobs:
         with:
           version: "0.11.16"
           enable-cache: true
-      - run: uv lock --project apps/worker
-      - run: uv sync --project apps/worker --extra dev
-      - run: uv run --project apps/worker ruff check apps/worker/product_twin apps/worker/tests
+      - run: uv sync --project apps/worker --frozen --extra dev
+      - name: Python lint
+        run: |
+          mkdir -p apps/worker/tmp
+          set -o pipefail
+          uv run --project apps/worker ruff check apps/worker/product_twin apps/worker/tests 2>&1 | tee apps/worker/tmp/ruff.log
       - run: uv run --project apps/worker pytest apps/worker/tests
       - run: python scripts/check_schema_parity.py
       - run: python scripts/scan_secrets.py
@@ -78,7 +81,9 @@ jobs:
         if: always()
         with:
           name: uv-lock
-          path: apps/worker/uv.lock
+          path: |
+            apps/worker/uv.lock
+            apps/worker/tmp/ruff.log
           if-no-files-found: warn
 
   migrations:
@@ -91,8 +96,17 @@ jobs:
           version: 2.101.0
       - run: supabase start
       - run: supabase db reset
-      - run: supabase test db
+      - name: Verify migrations and RLS
+        run: |
+          set -o pipefail
+          supabase test db 2>&1 | tee supabase-test.log
       - run: '! grep -R "auth.role()" supabase/migrations'
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: supabase-test-log
+          path: supabase-test.log
+          if-no-files-found: warn
 
   dependency-review:
     name: Dependency review

@@ -27,15 +27,22 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.11.16"
-      - run: uv sync --project apps/worker --extra dev
-      - run: >-
-          uv run --project apps/worker product-twin render-fixture
-          --no-fallback
-          --spec packages/test-fixtures/round-dropper/spec.json
-          --label packages/test-fixtures/round-dropper/label.png
-          --output apps/worker/tmp/blender-smoke
+      - run: uv sync --project apps/worker --frozen --extra dev
+      - name: Render authoritative Blender fixture
+        run: |
+          mkdir -p apps/worker/tmp
+          set -o pipefail
+          uv run --project apps/worker product-twin render-fixture \
+            --no-fallback \
+            --spec packages/test-fixtures/round-dropper/spec.json \
+            --label packages/test-fixtures/round-dropper/label.png \
+            --output apps/worker/tmp/blender-smoke 2>&1 | tee apps/worker/tmp/blender-smoke.log
       - run: uv run --project apps/worker python scripts/check_render_outputs.py apps/worker/tmp/blender-smoke
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: product-twin-blender-fixture
-          path: apps/worker/tmp/blender-smoke
+          path: |
+            apps/worker/tmp/blender-smoke
+            apps/worker/tmp/blender-smoke.log
+          if-no-files-found: warn
