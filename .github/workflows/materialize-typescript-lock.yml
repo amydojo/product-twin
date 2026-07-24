@@ -1,6 +1,7 @@
 name: Materialize TypeScript lock
 
 on:
+  workflow_dispatch:
   push:
     branches: [agent/product-twin-v0-1]
     paths:
