@@ -36,6 +36,7 @@ select throws_ok(
   'cross-user project asset insert denied'
 );
 
+reset role;
 select is((select public from storage.buckets where id = 'product-uploads'), false, 'upload bucket is private');
 select is((select public from storage.buckets where id = 'product-outputs'), false, 'output bucket is private');
 select ok(not exists(select 1 from pg_policies where coalesce(qual, '') like '%auth.role%'), 'no auth.role in policies');
