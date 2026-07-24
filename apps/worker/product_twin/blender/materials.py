@@ -71,10 +71,20 @@ def create_material(bpy, name: str, color: str, values: dict[str, float], alpha:
 
 
 def create_ground_material(bpy):
-    material = create_material(
-        bpy,
-        "GROUND_MATERIAL",
-        "#ffffff",
-        principled_values("matte-plastic", 0.72, 0.0, 1.46),
-    )
+    """Create an unlit white ecommerce backdrop.
+
+    A lit white Principled surface can render below RGB 245 after Blender color
+    management, even at the image corners. An emission surface preserves a
+    deterministic pure-white background while product lighting remains unchanged.
+    """
+    material = bpy.data.materials.new("GROUND_MATERIAL")
+    material.use_nodes = True
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    emission = nodes.new("ShaderNodeEmission")
+    emission.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    emission.inputs["Strength"].default_value = 1.0
+    links.new(emission.outputs["Emission"], output.inputs["Surface"])
     return material
