@@ -29,7 +29,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm install --frozen-lockfile 2>&1 | tee pnpm-web-install.log
-      - run: pnpm lint
+      - name: Lint web and schema packages
+        run: |
+          set -o pipefail
+          pnpm lint 2>&1 | tee pnpm-web-lint.log
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm schema:check
@@ -44,6 +47,7 @@ jobs:
           path: |
             pnpm-lock.yaml
             pnpm-web-install.log
+            pnpm-web-lint.log
           if-no-files-found: warn
 
   e2e:
