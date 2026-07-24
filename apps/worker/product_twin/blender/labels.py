@@ -16,6 +16,11 @@ def _artwork_material(bpy, artwork_path: str, fallback_material):
     image_node.image = bpy.data.images.load(str(path), check_existing=True)
     image_node.interpolation = "Linear"
     links.new(image_node.outputs["Color"], bsdf.inputs["Base Color"])
+    if "Emission Color" in bsdf.inputs:
+        links.new(image_node.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = 0.22
+    elif "Emission" in bsdf.inputs:
+        links.new(image_node.outputs["Color"], bsdf.inputs["Emission"])
     if "Alpha" in image_node.outputs and "Alpha" in bsdf.inputs:
         links.new(image_node.outputs["Alpha"], bsdf.inputs["Alpha"])
     bsdf.inputs["Roughness"].default_value = 0.46
