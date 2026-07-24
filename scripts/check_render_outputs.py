@@ -57,8 +57,9 @@ def check(output: Path) -> dict[str, object]:
     if glb.stat().st_size >= 10 * 1024 * 1024:
         raise AssertionError("fixture GLB exceeds 10 MB")
     scene = trimesh.load(glb, force="scene")
-    nodes = set(scene.graph.nodes)
-    missing = REQUIRED_GLTF_NODES - nodes
+    nodes = {str(node) for node in scene.graph.nodes}
+    normalized_nodes = {node.split(".")[0] for node in nodes}
+    missing = REQUIRED_GLTF_NODES - normalized_nodes
     if missing:
         raise AssertionError(f"GLB missing required named nodes: {sorted(missing)}")
     manifest = json.loads((output / "manifest.json").read_text())
