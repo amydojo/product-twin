@@ -8,13 +8,18 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const fixtureMode = process.env.PRODUCT_TWIN_FIXTURE_MODE === "true";
+
   return (
     <html lang="en">
       <body>
         <div className="shell">
           <header className="mast">
             <Link href="/" aria-label="Product Twin home"><strong>PRODUCT TWIN</strong></Link>
-            <span className="eyebrow">Packaging reconstruction / v0.1</span>
+            <span className="eyebrow">
+              Packaging reconstruction / v0.1
+              {fixtureMode ? " · Fixture preview · no live worker" : ""}
+            </span>
           </header>
           {children}
         </div>

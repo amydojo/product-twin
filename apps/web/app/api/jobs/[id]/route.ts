@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       errorMessage: data.error_message,
       updatedAt: data.updated_at,
     });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Job lookup failed." }, { status: 404 });
+  } catch {
+    return NextResponse.json({ error: "Job status could not be loaded." }, { status: 404 });
   }
 }

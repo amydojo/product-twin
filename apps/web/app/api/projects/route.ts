@@ -6,6 +6,7 @@ import {
   isFixtureMode,
   requireUser,
   safeExtension,
+  safeFilename,
 } from "@/lib/project-server";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +18,28 @@ export async function POST(request: Request) {
     const label = form.get("label");
     const heightMm = Number(form.get("heightMm"));
     const name = String(form.get("name") || "Untitled product").trim().slice(0, 120);
-    if (!(front instanceof File)) throw new Error("A front product photo is required.");
-    assertImage(front, true);
-    if (label instanceof File && label.size > 0) assertImage(label, false);
+    if (!(front instanceof File)) {
+      return NextResponse.json({ error: "A front product photo is required." }, { status: 400 });
+    }
+    try {
+      await assertImage(front, true);
+      if (label instanceof File && label.size > 0) await assertImage(label, false);
+    } catch (error) {
+      const message =
+        error instanceof Error &&
+        /^(A front product photo|Use a PNG|Images must be|The image contents)/.test(error.message)
+          ? error.message
+          : "The uploaded image is invalid.";
+      return NextResponse.json(
+        { error: message },
+        { status: 400 },
+      );
+    }
     if (!Number.isFinite(heightMm) || heightMm <= 20 || heightMm > 400) {
-      throw new Error("Total product height must be between 20 and 400 mm.");
+      return NextResponse.json(
+        { error: "Total product height must be between 20 and 400 mm." },
+        { status: 400 },
+      );
     }
 
     const spec = draftSpec(heightMm);
@@ -70,7 +88,7 @@ export async function POST(request: Request) {
         object_path: frontPath,
         mime_type: front.type,
         byte_size: front.size,
-        metadata: { originalName: front.name },
+        metadata: { originalName: safeFilename(front.name) },
       },
       {
         project_id: project.id,
@@ -102,7 +120,7 @@ export async function POST(request: Request) {
         object_path: labelPath,
         mime_type: label.type,
         byte_size: label.size,
-        metadata: { originalName: label.name },
+        metadata: { originalName: safeFilename(label.name) },
       });
     }
 
@@ -149,10 +167,7 @@ export async function POST(request: Request) {
       analysisSummary:
         "Background-removal weights were unavailable. The unchanged source is shown as an explicit no-op isolation fallback, and the physical draft is anchored by the supplied height.",
     });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Project creation failed." },
-      { status: 400 },
-    );
+  } catch {
+    return NextResponse.json({ error: "Project creation failed." }, { status: 500 });
   }
 }

@@ -46,7 +46,7 @@ Uploaded artwork becomes an image texture on `LABEL`. Color and alpha outputs co
 - `CAM_THREE_QUARTER`: controlled dimensional view
 - `CAM_ECOM`: centered marketplace view
 
-Three large area lights act as key, fill, and rim softboxes. The ground supplies a subtle contact shadow. Transparent views hide the ground and enable film transparency. Ecommerce keeps the ground and renders against white. The scene avoids neon, dramatic colored light, and unbounded reflections.
+Three large area lights act as key, fill, and rim softboxes. The ground supplies a subtle contact shadow where the output contract permits it. Transparent views hide the ground and enable film transparency. Ecommerce renders the lit product with alpha and composites that Blender output over literal white, which makes every background corner exactly `(255,255,255)` without altering product pixels. The scene avoids neon, dramatic colored light, and unbounded reflections.
 
 ## Outputs
 
@@ -54,6 +54,6 @@ Three large area lights act as key, fill, and rim softboxes. The ground supplies
 - `three-quarter.png`: transparent dimensional view
 - `ecommerce.png`: fully opaque white-background view
 - `product.glb`: reusable model for Three.js
-- `manifest.json`: schema version, Blender version, render engine, resolution, object names, output names and paths, per-stage durations, warnings, file sizes, source Git commit, and generation inputs
+- `manifest.json`: schema version, Blender version, render engine, resolution, object names, logical output filenames, per-stage durations, warnings, file sizes, source Git commit, and input filenames (never absolute worker paths)
 
-`scripts/check_render_outputs.py` performs structural and tolerant visual assertions. It verifies files are nonempty, images are square and nonblank, alpha behavior is correct, the GLB parses, required nodes exist, and the fixture stays below 10 MB. It deliberately avoids brittle pixel-perfect snapshots.
+`scripts/check_render_outputs.py` performs structural and targeted visual assertions. It verifies files are nonempty, images are square and nonblank, transparent views contain both transparent and visible pixels, ecommerce is fully opaque with four literal-white corners, manifest filenames and sizes are accurate, the GLB parses with required named nodes, and the fixture stays below 10 MB. It reports the actual alpha range, corner pixels, dimensions, luminance variance, GLB nodes, and file sizes without relying on a brittle whole-image snapshot.

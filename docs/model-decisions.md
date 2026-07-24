@@ -1,6 +1,6 @@
 # Hugging Face model decisions
 
-Verified July 23, 2026 against the current Hub repository metadata, model cards, and pinned repository revisions. A permissive model license does not replace product-specific legal review.
+Verified July 24, 2026 against the current Hub repository metadata, model cards, and pinned repository revisions. A permissive model license does not replace product-specific legal review.
 
 | Repository ID | Pinned revision | Approximate size | License | Runtime and code requirements | Commercial posture | v0.1 decision |
 |---|---|---:|---|---|---|---|

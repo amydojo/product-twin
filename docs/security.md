@@ -20,14 +20,15 @@ Mutation endpoints require an HMAC-SHA256 signature over:
 HTTP method
 request path
 Unix timestamp
+single-use random nonce
 SHA-256 body digest
 ```
 
-The worker accepts a five-minute clock window and uses constant-time comparison. Job IDs are parsed as UUIDs before processing.
+The worker requires at least 32 secret bytes, accepts a five-minute clock window, uses constant-time comparison, and rejects a nonce after its first valid use through a bounded in-memory replay guard. The atomic database claim remains the durable protection against duplicate job execution. Job IDs are parsed as UUIDs before processing.
 
 ## Upload validation
 
-The browser provides convenience checks, but the Next.js server is authoritative. Front photos and label artwork are limited to PNG, JPEG, or WebP and 15 MB. Object extensions derive from trusted MIME type rather than the uploaded filename. Supabase buckets enforce an additional MIME and byte limit.
+The browser provides convenience checks, but the Next.js server is authoritative. Front photos and label artwork are limited to PNG, JPEG, or WebP and 15 MB. The server checks the file signature against the declared MIME type, derives object extensions from that type, and normalizes the original filename before retaining it as display-only metadata. User filenames never become storage paths. Supabase buckets enforce an additional MIME and byte limit.
 
 ## Subprocess safety
 
@@ -39,8 +40,8 @@ Model adapters are lazy and revision-pinned. Normal CI and deterministic fixture
 
 ## Debug surface
 
-The debug route is unavailable in production unless `ENABLE_DEBUG_VIEW=true`. It may show owned database records, validation output, safe command templates, masks, manifests, and output metadata. It never renders environment variables, authorization headers, service-role values, HMAC secrets, or Hugging Face tokens.
+The debug route is unavailable in production unless `ENABLE_DEBUG_VIEW=true`. It may show owned database records, validation output, safe command templates, masks, manifests, and output metadata. It never renders environment variables, authorization headers, service-role values, HMAC secrets, Hugging Face tokens, or absolute worker filesystem paths. Public API failures return stable messages rather than raw provider/database errors.
 
 ## Verification
 
-`supabase/tests/rls.sql` proves cross-user project reads and writes fail, buckets are private, RLS is enabled on every exposed table, no policy uses `auth.role()`, and only `service_role` can execute the atomic job claim. `scripts/scan_secrets.py` fails CI on common committed-secret patterns.
+`supabase/tests/rls.sql` proves owner and cross-user table/storage behavior, private buckets, RLS on every exposed table, the absence of `auth.role()`, browser denial of worker-owned job columns, atomic claiming, stale-lock recovery, and the three-attempt cap. `scripts/scan_secrets.py` fails CI on common committed-secret patterns.

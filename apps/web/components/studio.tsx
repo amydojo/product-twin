@@ -127,6 +127,7 @@ export function Studio() {
                 id="front"
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
+                required
                 {...register("front", { required: true })}
               />
               {errors.front ? <span className="field-error">A front photo is required.</span> : null}
@@ -144,6 +145,7 @@ export function Studio() {
                 min="21"
                 max="400"
                 step="0.1"
+                required
                 {...register("heightMm", { required: true, valueAsNumber: true, min: 21, max: 400 })}
               />
             </div>

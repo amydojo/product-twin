@@ -47,10 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (insertError) throw insertError;
 
     return NextResponse.json({ approved: true, version: nextVersion, spec: result.data });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Approval failed." },
-      { status: 400 },
-    );
+  } catch {
+    return NextResponse.json({ error: "Specification approval failed." }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hmacHeaders, isFixtureMode, requireUser } from "@/lib/project-server";
+import { hmacHeaders, isFixtureMode, requireUser, workerStartUrl } from "@/lib/project-server";
 import { createClient } from "@/lib/supabase/server";
 
 const fixtureOutputs = [
@@ -34,23 +34,38 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (specError || !approvedSpec) throw new Error("Approve the packaging specification before rendering.");
+    if (specError) {
+      return NextResponse.json({ error: "The approved specification could not be loaded." }, { status: 500 });
+    }
+    if (!approvedSpec) {
+      return NextResponse.json(
+        { error: "Approve the packaging specification before rendering." },
+        { status: 409 },
+      );
+    }
 
     const { data: job, error: jobError } = await supabase
       .from("render_jobs")
       .insert({ project_id: id, user_id: user.id, status: "queued", current_step: "validating specification" })
       .select("id, status, current_step")
       .single();
-    if (jobError) throw jobError;
+    if (jobError) {
+      return NextResponse.json({ error: "The render job could not be created." }, { status: 500 });
+    }
     await supabase.from("projects").update({ status: "queued" }).eq("id", id);
 
-    const worker = process.env.PRODUCT_TWIN_WORKER_URL;
-    if (!worker) {
+    if (!process.env.PRODUCT_TWIN_WORKER_URL) {
       const message = "The render worker is not configured. Your approved specification is saved; rendering did not start.";
       await Promise.all([
         supabase
           .from("render_jobs")
-          .update({ status: "failed", current_step: "failed", error_code: "worker_unavailable", error_message: message })
+          .update({
+            status: "failed",
+            current_step: "failed",
+            error_code: "worker_unavailable",
+            error_message: message,
+            completed_at: new Date().toISOString(),
+          })
           .eq("id", job.id),
         supabase.from("projects").update({ status: "failed" }).eq("id", id),
       ]);
@@ -61,30 +76,58 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     const path = `/internal/jobs/${job.id}/start`;
-    const response = await fetch(new URL(path, worker), {
-      method: "POST",
-      headers: hmacHeaders(path, ""),
-      cache: "no-store",
-    });
+    let response: Response;
+    try {
+      response = await fetch(workerStartUrl(path), {
+        method: "POST",
+        headers: hmacHeaders(path, ""),
+        cache: "no-store",
+      });
+    } catch {
+      const message = "The render worker could not be reached. The approved specification remains saved.";
+      await Promise.all([
+        supabase
+          .from("render_jobs")
+          .update({
+            status: "failed",
+            current_step: "failed",
+            error_code: "worker_start_failed",
+            error_message: message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", job.id),
+        supabase.from("projects").update({ status: "failed" }).eq("id", id),
+      ]);
+      return NextResponse.json(
+        { error: message, jobId: job.id, status: "failed", currentStep: "failed" },
+        { status: 503 },
+      );
+    }
     if (!response.ok) {
       const message = "The render worker rejected the job. The approved specification remains saved.";
       await Promise.all([
         supabase
           .from("render_jobs")
-          .update({ status: "failed", current_step: "failed", error_code: "worker_start_failed", error_message: message })
+          .update({
+            status: "failed",
+            current_step: "failed",
+            error_code: "worker_start_failed",
+            error_message: message,
+            completed_at: new Date().toISOString(),
+          })
           .eq("id", job.id),
         supabase.from("projects").update({ status: "failed" }).eq("id", id),
       ]);
-      throw new Error(message);
+      return NextResponse.json(
+        { error: message, jobId: job.id, status: "failed", currentStep: "failed" },
+        { status: 502 },
+      );
     }
     return NextResponse.json(
       { jobId: job.id, status: "queued", currentStep: "validating specification" },
       { status: 202 },
     );
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Render start failed." },
-      { status: 400 },
-    );
+  } catch {
+    return NextResponse.json({ error: "Rendering could not be started." }, { status: 500 });
   }
 }

@@ -42,7 +42,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       }),
     );
     return NextResponse.json({ projectId: id, outputs });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Results lookup failed." }, { status: 404 });
+  } catch {
+    return NextResponse.json({ error: "Results could not be loaded." }, { status: 404 });
   }
 }

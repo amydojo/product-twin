@@ -8,7 +8,7 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request, Re
 from pydantic import BaseModel
 
 from .job_service import process_job
-from .security import verify
+from .security import ReplayGuard, verify
 from .settings import settings
 from .supabase_gateway import SupabaseGateway
 
@@ -18,6 +18,7 @@ logger = logging.getLogger("product_twin.api")
 def log_event(level: int, event: str, **fields) -> None:
     logger.log(level, json.dumps({"event": event, **fields}, sort_keys=True))
 app = FastAPI(title="Product Twin Worker", version="0.1.0")
+replay_guard = ReplayGuard()
 
 
 class StartResponse(BaseModel):
@@ -64,22 +65,26 @@ async def start(
     job_id: uuid.UUID,
     request: Request,
     background_tasks: BackgroundTasks,
+    x_product_twin_nonce: str = Header(),
     x_product_twin_timestamp: str = Header(),
     x_product_twin_signature: str = Header(),
 ) -> StartResponse:
     body = await request.body()
     secret = settings.product_twin_internal_secret
-    if not secret:
+    if not secret or len(secret) < 32:
         raise HTTPException(status_code=503, detail="worker authentication is not configured")
     if not verify(
         request.method,
         request.url.path,
         x_product_twin_timestamp,
+        x_product_twin_nonce,
         body,
         x_product_twin_signature,
         secret,
     ):
         raise HTTPException(status_code=401, detail="invalid worker signature")
+    if not replay_guard.accept(x_product_twin_nonce):
+        raise HTTPException(status_code=409, detail="replayed worker request")
     if not settings.product_twin_fixture_mode and not settings.connected_ready:
         raise HTTPException(status_code=503, detail="worker service configuration is incomplete")
     if not settings.product_twin_fixture_mode:

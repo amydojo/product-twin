@@ -23,6 +23,7 @@ class Settings(BaseSettings):
             self.supabase_url
             and self.supabase_service_role_key
             and self.product_twin_internal_secret
+            and len(self.product_twin_internal_secret) >= 32
         )
 
 

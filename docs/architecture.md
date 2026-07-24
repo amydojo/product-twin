@@ -46,11 +46,11 @@ The browser receives only the Supabase project URL and publishable key. It may c
 
 ### Next.js server
 
-Next.js confirms the current user with `auth.getUser()`, relies on RLS for ownership, validates upload size and MIME type, validates the packaging specification again, creates render jobs, and signs worker starts with method, path, timestamp, and body digest. It does not run Blender or long inference.
+Next.js confirms the current user with `auth.getUser()`, relies on RLS for ownership, validates upload size, MIME type, and image signature, validates the packaging specification again, creates render jobs, and signs worker starts with method, path, timestamp, a single-use nonce, and body digest. It permits HTTP worker URLs only on loopback and requires HTTPS remotely. It does not run Blender or long inference.
 
 ### Worker
 
-The worker is the only component with the Supabase service-role key. It claims a job atomically, validates the approved spec with Pydantic, downloads only paths prefixed by the job owner UUID, selects a configured perception adapter, and invokes a fixed Blender script with an argument list. Internal mutation endpoints require a fresh HMAC signature.
+The worker is the only component with the Supabase service-role key. It claims a job atomically, validates the approved spec with Pydantic, downloads only paths prefixed by the job owner UUID, selects a configured perception adapter, and invokes a fixed Blender script with an argument list and no shell. Internal mutation endpoints require a fresh nonce-bound HMAC signature and reject replay.
 
 ### Blender subprocess
 

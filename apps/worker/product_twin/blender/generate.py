@@ -179,15 +179,15 @@ def main() -> None:
         "renderResolution": spec["render"]["resolution"],
         "generatedObjectNames": present,
         "outputFilenames": output_names,
-        "outputPaths": {name: str((output / name).resolve()) for name in output_names},
+        "outputPaths": {name: name for name in output_names},
         "durationsSeconds": stages,
         "warnings": warnings,
         "fileSizes": file_sizes,
         "sourceGitCommit": git_commit(),
         "totalDurationSeconds": time.perf_counter() - started,
         "inputs": {
-            "specPath": str(Path(arguments.spec).resolve()),
-            "labelPath": str(Path(arguments.label).resolve()) if arguments.label else None,
+            "specFilename": Path(arguments.spec).name,
+            "labelFilename": Path(arguments.label).name if arguments.label else None,
         },
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2))

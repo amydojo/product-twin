@@ -30,6 +30,7 @@ export function SpecEditor({ spec, onChange }: Props) {
               min={min}
               max={max}
               step="0.1"
+              required
               value={spec.dimensions[key]}
               onChange={(event) => setDimension(key, Number(event.target.value))}
             />
@@ -97,7 +98,7 @@ export function SpecEditor({ spec, onChange }: Props) {
           />
         </div>
         <div className="field field-inline">
-          <label htmlFor="liquidEnabled">Internal liquid</label>
+          <label htmlFor="liquidEnabled">Liquid enabled</label>
           <input
             id="liquidEnabled"
             type="checkbox"
@@ -131,6 +132,7 @@ export function SpecEditor({ spec, onChange }: Props) {
             type="number"
             min="0"
             max="100"
+            required={spec.liquid.enabled}
             disabled={!spec.liquid.enabled}
             value={spec.liquid.fillPercent}
             onChange={(event) => onChange({ ...spec, liquid: { ...spec.liquid, fillPercent: Number(event.target.value) } })}

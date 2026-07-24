@@ -45,7 +45,7 @@ def render_fixture(
             script.resolve(),
             label.resolve() if label else None,
         )
-        subprocess.run(command, check=True, timeout=900)
+        subprocess.run(command, check=True, timeout=900, shell=False)
         return validate_outputs(output)
     if not allow_fallback:
         raise RuntimeError("Blender is not installed")

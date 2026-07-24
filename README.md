@@ -103,7 +103,7 @@ When Blender is installed, the CLI uses Blender. When it is absent, fixture mode
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | browser and server | Browser-safe publishable key |
 | `PRODUCT_TWIN_FIXTURE_MODE` | server and worker | Enables deterministic local and preview flow |
 | `PRODUCT_TWIN_WORKER_URL` | Next.js server | Private worker base URL |
-| `PRODUCT_TWIN_INTERNAL_SECRET` | Next.js server and worker | HMAC secret for mutation endpoints |
+| `PRODUCT_TWIN_INTERNAL_SECRET` | Next.js server and worker | At least 32 random bytes for nonce-bound HMAC mutation authentication |
 | `SUPABASE_URL` | worker | Supabase REST and Storage base URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | worker only | Bypasses RLS for trusted job processing |
 | `PRODUCT_TWIN_BACKGROUND_PROVIDER` | worker | `deterministic-fixture`, `noop`, or `birefnet` |
@@ -132,13 +132,13 @@ supabase db reset
 supabase test db
 ```
 
-The dedicated **Blender smoke** workflow installs Blender, renders the fictional fixture, parses the GLB, verifies required named nodes, checks image dimensions and alpha behavior, and enforces the 10 MB fixture target. Normal CI never downloads model weights.
+The dedicated **Blender authoritative** workflow installs Blender, renders the fictional fixture, parses the GLB, verifies required named nodes, checks image dimensions and alpha behavior, requires literal white ecommerce corners, and enforces the 10 MB fixture target. The **Worker Space package** job builds and starts the Docker Space at the exact commit, checks health, and runs the same CPU fixture without downloading model weights.
 
 ## Deployment
 
-- **Vercel:** import the repository root, keep `apps/web` as the application package, and configure only publishable Supabase values plus server-only worker values. Blender never runs in Vercel Functions.
-- **Supabase:** apply `supabase/migrations/20260724010000_product_twin_v0_1.sql`; both buckets remain private and all exposed tables use RLS.
-- **Hugging Face:** create a Docker Space from `infra/huggingface-space`, then add Supabase and HMAC values as Space secrets. The free CPU baseline renders deterministic Blender output without a GPU.
+- **Vercel:** import the repository root so `vercel.json` can build the `apps/web` workspace with the committed frozen lockfile. Configure only publishable Supabase values plus server-only worker values. Fixture previews set `PRODUCT_TWIN_FIXTURE_MODE=true` and display that state in the masthead. Blender never runs in Vercel Functions.
+- **Supabase:** apply every committed migration in timestamp order with `supabase db push`. The historical prototype migration is followed by a guarded reconciliation and foreign-key indexes; both current buckets remain private and all exposed tables use RLS.
+- **Hugging Face:** create a Docker Space from `infra/huggingface-space`, build with an immutable `PRODUCT_TWIN_REF`, then add Supabase and a 32-byte-or-longer HMAC value as Space secrets. The unprivileged free CPU baseline renders deterministic Blender output without a GPU.
 
 ## Known limitations
 

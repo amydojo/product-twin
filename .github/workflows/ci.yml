@@ -3,46 +3,20 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, agent/product-twin-v0-1]
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  refresh-lockfile:
-    name: Refresh TypeScript lockfile
-    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/product-twin-v0-1'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: agent/product-twin-v0-1
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.15.1
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - run: pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts
-      - name: Commit generated lockfile
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          if git diff --cached --quiet; then
-            echo "Lockfile already current."
-            exit 0
-          fi
-          git commit -m "Update TypeScript lockfile"
-          git push origin HEAD:agent/product-twin-v0-1
-
   web:
     name: Web quality
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -52,31 +26,37 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.16"
       - name: Install web dependencies
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm install --frozen-lockfile 2>&1 | tee pnpm-web-install.log
       - name: Lint web and schema packages
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm lint 2>&1 | tee pnpm-web-lint.log
       - name: Typecheck
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm typecheck 2>&1 | tee pnpm-web-typecheck.log
       - name: Test web and schema packages
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm test 2>&1 | tee pnpm-web-test.log
-      - run: pnpm schema:check
-      - run: pnpm audit --audit-level critical
-      - run: pnpm build
+      - name: Verify schema parity
+        run: pnpm schema:check
+      - name: Audit critical dependencies
+        run: pnpm audit --audit-level critical
+      - name: Build Next.js production bundle
+        run: pnpm build
         env:
           PRODUCT_TWIN_FIXTURE_MODE: "true"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: pnpm-lock
+          name: web-quality-evidence
           path: |
             pnpm-lock.yaml
             pnpm-web-install.log
@@ -88,6 +68,7 @@ jobs:
   e2e:
     name: Fixture happy path
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -99,12 +80,13 @@ jobs:
           cache: pnpm
       - name: Install e2e dependencies
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm install --frozen-lockfile 2>&1 | tee pnpm-e2e-install.log
-      - run: pnpm --filter @product-twin/web exec playwright install --with-deps chromium
+      - name: Install Chromium
+        run: pnpm --filter @product-twin/web exec playwright install --with-deps chromium
       - name: Run fixture happy path
         run: |
-          set -o pipefail
+          set -euo pipefail
           pnpm test:e2e 2>&1 | tee pnpm-e2e.log
         env:
           PRODUCT_TWIN_FIXTURE_MODE: "true"
@@ -122,6 +104,7 @@ jobs:
   worker:
     name: Worker quality
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v6
@@ -132,35 +115,102 @@ jobs:
       - name: Python lint
         run: |
           mkdir -p apps/worker/tmp
-          set -o pipefail
+          set -euo pipefail
           uv run --project apps/worker ruff check apps/worker/product_twin apps/worker/tests 2>&1 | tee apps/worker/tmp/ruff.log
-      - run: uv run --project apps/worker pytest apps/worker/tests
-      - run: uv run --project apps/worker python scripts/check_schema_parity.py
-      - run: python scripts/scan_secrets.py
+      - name: Python tests
+        run: uv run --project apps/worker pytest apps/worker/tests
+      - name: Schema parity
+        run: uv run --project apps/worker python scripts/check_schema_parity.py
+      - name: Secret scan
+        run: python scripts/scan_secrets.py
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: uv-lock
+          name: worker-quality-evidence
           path: |
             apps/worker/uv.lock
             apps/worker/tmp/ruff.log
           if-no-files-found: warn
 
+  worker-space:
+    name: Worker Space package
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build exact-commit Docker Space image
+        run: |
+          set -euo pipefail
+          mkdir -p apps/worker/tmp
+          docker build \
+            --build-arg "PRODUCT_TWIN_REF=${GITHUB_SHA}" \
+            --file infra/huggingface-space/Dockerfile \
+            --tag product-twin-space:${GITHUB_SHA} \
+            . 2>&1 | tee apps/worker/tmp/space-build.log
+      - name: Start Space and verify health
+        run: |
+          set -euo pipefail
+          docker run --detach \
+            --name product-twin-space \
+            --publish 7860:7860 \
+            "product-twin-space:${GITHUB_SHA}"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:7860/health > apps/worker/tmp/space-health.json; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs product-twin-space
+              exit 1
+            fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:7860/ready > apps/worker/tmp/space-ready.json
+      - name: Run authoritative CPU fixture without model downloads
+        run: |
+          set -euo pipefail
+          docker exec product-twin-space \
+            python3 -m product_twin.cli render-fixture \
+              --no-fallback \
+              --spec /opt/product-twin/packages/test-fixtures/round-dropper/spec.json \
+              --output /tmp/blender-smoke
+          docker exec --workdir /opt/product-twin product-twin-space \
+            python3 scripts/check_render_outputs.py /tmp/blender-smoke \
+            | tee apps/worker/tmp/space-render-verification.json
+          docker exec --env "EXPECTED_SHA=${GITHUB_SHA}" product-twin-space \
+            python3 -c 'import json, os; manifest=json.load(open("/tmp/blender-smoke/manifest.json")); assert manifest["sourceGitCommit"] == os.environ["EXPECTED_SHA"]'
+          docker exec product-twin-space sh -c \
+            'test ! -d "$HF_HOME" || test -z "$(find "$HF_HOME" -mindepth 1 -print -quit)"'
+      - name: Capture Space logs
+        if: always()
+        run: |
+          docker logs product-twin-space > apps/worker/tmp/space-runtime.log 2>&1 || true
+          docker rm --force product-twin-space >/dev/null 2>&1 || true
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: worker-space-evidence
+          path: apps/worker/tmp/space-*
+          if-no-files-found: warn
+
   migrations:
     name: Supabase migrations and RLS
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - run: supabase start
-      - run: supabase db reset
+      - name: Start local Supabase
+        run: supabase start
+      - name: Apply migrations from a clean database
+        run: supabase db reset
       - name: Verify migrations and RLS
         run: |
-          set -o pipefail
+          set -euo pipefail
           supabase test db 2>&1 | tee supabase-test.log
-      - run: '! grep -R "auth.role()" supabase/migrations'
+      - name: Reject deprecated role checks
+        run: '! grep -R "auth.role()" supabase/migrations'
       - uses: actions/upload-artifact@v6
         if: always()
         with:

@@ -13,32 +13,44 @@ REQUIRED_GLTF_NODES = {"BODY", "NECK", "CLOSURE", "DROPPER_BULB", "PIPETTE", "LA
 
 
 def check_image(path: Path, transparent: bool) -> dict[str, object]:
-    image = Image.open(path)
-    if image.width != image.height or image.width < 512:
-        raise AssertionError(f"{path.name} must be a square render of at least 512 px")
-    rgba = image.convert("RGBA")
+    with Image.open(path) as source:
+        source.load()
+        mode = source.mode
+        size = source.size
+        rgba = source.convert("RGBA")
+    if size[0] != size[1] or size[0] < 512:
+        raise AssertionError(
+            f"{path.name} must be a square render of at least 512 px; got {size}"
+        )
     alpha = rgba.getchannel("A")
     alpha_min, alpha_max = alpha.getextrema()
     if transparent and not (alpha_min == 0 and alpha_max > 0):
         raise AssertionError(f"{path.name} does not contain a transparent background and visible product")
-    if not transparent and alpha_min != 255:
-        raise AssertionError(f"{path.name} must be fully opaque")
+    if not transparent and (alpha_min, alpha_max) != (255, 255):
+        raise AssertionError(
+            f"{path.name} must be fully opaque; alpha range was {(alpha_min, alpha_max)}"
+        )
+    corners = [
+        rgba.getpixel((0, 0)),
+        rgba.getpixel((rgba.width - 1, 0)),
+        rgba.getpixel((0, rgba.height - 1)),
+        rgba.getpixel((rgba.width - 1, rgba.height - 1)),
+    ]
     if not transparent:
-        corners = [
-            rgba.getpixel((0, 0)),
-            rgba.getpixel((rgba.width - 1, 0)),
-            rgba.getpixel((0, rgba.height - 1)),
-            rgba.getpixel((rgba.width - 1, rgba.height - 1)),
-        ]
-        if any(min(pixel[:3]) < 245 for pixel in corners):
-            raise AssertionError(f"{path.name} must have a white ecommerce background")
+        if any(pixel != (255, 255, 255, 255) for pixel in corners):
+            raise AssertionError(
+                f"{path.name} corners must be literal white; got {corners}"
+            )
     luminance = ImageStat.Stat(rgba.convert("L"))
     if luminance.var[0] < 2:
-        raise AssertionError(f"{path.name} appears visually empty")
+        raise AssertionError(
+            f"{path.name} appears visually empty; luminance variance was {luminance.var[0]}"
+        )
     return {
-        "mode": image.mode,
-        "size": [image.width, image.height],
+        "mode": mode,
+        "size": [size[0], size[1]],
         "alphaRange": [alpha_min, alpha_max],
+        "cornerPixels": [list(pixel) for pixel in corners],
         "luminanceVariance": luminance.var[0],
     }
 
@@ -70,6 +82,24 @@ def check(output: Path) -> dict[str, object]:
             "GLB is missing required named nodes: "
             f"{sorted(missing_from_glb)}; exported nodes were {sorted(nodes)}"
         )
+    manifest_outputs = set(manifest.get("outputFilenames", []))
+    expected_outputs = set(REQUIRED_FILES) - {"manifest.json"}
+    if manifest_outputs != expected_outputs:
+        raise AssertionError(
+            "manifest output filenames differ from rendered files: "
+            f"expected {sorted(expected_outputs)}, got {sorted(manifest_outputs)}"
+        )
+    manifest_sizes = manifest.get("fileSizes", {})
+    size_mismatches = {
+        filename: {
+            "manifest": manifest_sizes.get(filename),
+            "actual": (output / filename).stat().st_size,
+        }
+        for filename in expected_outputs
+        if manifest_sizes.get(filename) != (output / filename).stat().st_size
+    }
+    if size_mismatches:
+        raise AssertionError(f"manifest file sizes are inaccurate: {size_mismatches}")
     return {
         "images": image_results,
         "glbBytes": glb.stat().st_size,

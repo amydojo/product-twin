@@ -7,11 +7,14 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export function GlbViewer({ src }: { src: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    setStatus("loading");
+    setError(null);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xece9e2);
@@ -54,9 +57,13 @@ export function GlbViewer({ src }: { src: string }) {
         scene.add(object);
         controls.target.set(0, 0, 0);
         controls.update();
+        setStatus("ready");
       },
       undefined,
-      () => setError("The GLB could not be loaded."),
+      () => {
+        setStatus("error");
+        setError("The GLB could not be loaded.");
+      },
     );
 
     const resize = () => {
@@ -96,7 +103,15 @@ export function GlbViewer({ src }: { src: string }) {
   }, [src]);
 
   return (
-    <div className="viewer" ref={mountRef} aria-label="Interactive GLB product twin viewer">
+    <div
+      className="viewer"
+      ref={mountRef}
+      aria-busy={status === "loading"}
+      aria-label="Interactive GLB product twin viewer"
+    >
+      <p className="sr-only" role="status">
+        {status === "ready" ? "GLB model loaded." : "Loading GLB model."}
+      </p>
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );
