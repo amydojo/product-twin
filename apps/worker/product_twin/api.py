@@ -33,9 +33,9 @@ def _run_job(job_id: str) -> None:
     gateway = SupabaseGateway(settings.supabase_url, settings.supabase_service_role_key)
     try:
         process_job(job_id, gateway, settings)
-    except Exception:
+    except Exception as error:
         # process_job persists a stable failure code before re-raising.
-        pass
+        log_event(logging.ERROR, "background_job_failed", job_id=job_id, error=str(error))
     finally:
         gateway.close()
 
@@ -68,13 +68,16 @@ async def start(
     x_product_twin_signature: str = Header(),
 ) -> StartResponse:
     body = await request.body()
+    secret = settings.product_twin_internal_secret
+    if not secret:
+        raise HTTPException(status_code=503, detail="worker authentication is not configured")
     if not verify(
         request.method,
         request.url.path,
         x_product_twin_timestamp,
         body,
         x_product_twin_signature,
-        settings.product_twin_internal_secret,
+        secret,
     ):
         raise HTTPException(status_code=401, detail="invalid worker signature")
     if not settings.product_twin_fixture_mode and not settings.connected_ready:
