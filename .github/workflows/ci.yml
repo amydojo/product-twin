@@ -60,7 +60,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm lint 2>&1 | tee pnpm-web-lint.log
-      - run: pnpm typecheck
+      - name: Typecheck
+        run: |
+          set -o pipefail
+          pnpm typecheck 2>&1 | tee pnpm-web-typecheck.log
       - run: pnpm test
       - run: pnpm schema:check
       - run: pnpm audit --audit-level critical
@@ -75,6 +78,7 @@ jobs:
             pnpm-lock.yaml
             pnpm-web-install.log
             pnpm-web-lint.log
+            pnpm-web-typecheck.log
           if-no-files-found: warn
 
   e2e:
@@ -94,14 +98,21 @@ jobs:
           set -o pipefail
           pnpm install --frozen-lockfile 2>&1 | tee pnpm-e2e-install.log
       - run: pnpm --filter @product-twin/web exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - name: Run fixture happy path
+        run: |
+          set -o pipefail
+          pnpm test:e2e 2>&1 | tee pnpm-e2e.log
         env:
           PRODUCT_TWIN_FIXTURE_MODE: "true"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: pnpm-e2e-install-log
-          path: pnpm-e2e-install.log
+          name: pnpm-e2e-logs
+          path: |
+            pnpm-e2e-install.log
+            pnpm-e2e.log
+            apps/web/playwright-report
+            apps/web/test-results
           if-no-files-found: warn
 
   worker:
