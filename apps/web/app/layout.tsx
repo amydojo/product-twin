@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -12,7 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <div className="shell">
           <header className="mast">
-            <a href="/" aria-label="Product Twin home"><strong>PRODUCT TWIN</strong></a>
+            <Link href="/" aria-label="Product Twin home"><strong>PRODUCT TWIN</strong></Link>
             <span className="eyebrow">Packaging reconstruction / v0.1</span>
           </header>
           {children}
