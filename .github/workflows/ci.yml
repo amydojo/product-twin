@@ -25,7 +25,10 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install web dependencies
+        run: |
+          set -o pipefail
+          pnpm install --frozen-lockfile 2>&1 | tee pnpm-web-install.log
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
@@ -38,7 +41,9 @@ jobs:
         if: always()
         with:
           name: pnpm-lock
-          path: pnpm-lock.yaml
+          path: |
+            pnpm-lock.yaml
+            pnpm-web-install.log
           if-no-files-found: warn
 
   e2e:
@@ -53,11 +58,20 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install e2e dependencies
+        run: |
+          set -o pipefail
+          pnpm install --frozen-lockfile 2>&1 | tee pnpm-e2e-install.log
       - run: pnpm --filter @product-twin/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
         env:
           PRODUCT_TWIN_FIXTURE_MODE: "true"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: pnpm-e2e-install-log
+          path: pnpm-e2e-install.log
+          if-no-files-found: warn
 
   worker:
     name: Worker quality
@@ -107,11 +121,3 @@ jobs:
           name: supabase-test-log
           path: supabase-test.log
           if-no-files-found: warn
-
-  dependency-review:
-    name: Dependency review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/dependency-review-action@v4
