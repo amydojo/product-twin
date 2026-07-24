@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { createElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixtureSpec } from "@/lib/fixture";
@@ -6,7 +7,7 @@ import { SpecEditor } from "./spec-editor";
 
 describe("SpecEditor", () => {
   it("exposes the required corrective controls", () => {
-    render(<SpecEditor spec={fixtureSpec} onChange={() => undefined} />);
+    render(createElement(SpecEditor, { spec: fixtureSpec, onChange: () => undefined }));
     for (const label of [
       /total height/i,
       /body diameter/i,
@@ -30,7 +31,7 @@ describe("SpecEditor", () => {
 
   it("emits an updated physical specification", () => {
     const onChange = vi.fn();
-    render(<SpecEditor spec={fixtureSpec} onChange={onChange} />);
+    render(createElement(SpecEditor, { spec: fixtureSpec, onChange }));
     fireEvent.change(screen.getByLabelText(/body diameter/i), { target: { value: "50" } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dimensions: expect.objectContaining({ bodyDiameterMm: 50 }) }));
   });
