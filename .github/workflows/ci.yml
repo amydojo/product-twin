@@ -64,7 +64,10 @@ jobs:
         run: |
           set -o pipefail
           pnpm typecheck 2>&1 | tee pnpm-web-typecheck.log
-      - run: pnpm test
+      - name: Test web and schema packages
+        run: |
+          set -o pipefail
+          pnpm test 2>&1 | tee pnpm-web-test.log
       - run: pnpm schema:check
       - run: pnpm audit --audit-level critical
       - run: pnpm build
@@ -79,6 +82,7 @@ jobs:
             pnpm-web-install.log
             pnpm-web-lint.log
             pnpm-web-typecheck.log
+            pnpm-web-test.log
           if-no-files-found: warn
 
   e2e:
