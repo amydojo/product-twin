@@ -15,9 +15,11 @@ _EXCLUDED = {
 
 
 def _apply_mesh_transforms(bpy) -> None:
+    bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
         if obj.type != "MESH" or obj.name in _EXCLUDED:
             continue
+        bpy.ops.object.select_all(action="DESELECT")
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
