@@ -57,7 +57,7 @@ def check(output: Path) -> dict[str, object]:
     if glb.stat().st_size >= 10 * 1024 * 1024:
         raise AssertionError("fixture GLB exceeds 10 MB")
     scene = trimesh.load(glb, force="scene")
-    nodes = set(scene.graph.nodes_geometry)
+    nodes = set(scene.graph.nodes)
     missing = REQUIRED_GLTF_NODES - nodes
     if missing:
         raise AssertionError(f"GLB missing required named nodes: {sorted(missing)}")
