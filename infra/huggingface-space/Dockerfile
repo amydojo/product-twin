@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PRODUCT_TWIN_BACKGROUND_PROVIDER=deterministic-fixture
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends blender ca-certificates git python3 python3-pip \
+    && apt-get install -y --no-install-recommends blender libegl1 libgl1 ca-certificates git python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --branch "${PRODUCT_TWIN_REF}" \
