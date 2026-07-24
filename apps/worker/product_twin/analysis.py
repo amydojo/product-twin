@@ -1,6 +1,5 @@
 from pathlib import Path
 from PIL import Image
-from .models import PackagingSpec
 
 def visible_bbox(mask_path:Path)->tuple[int,int,int,int]:
     image=Image.open(mask_path).convert('L'); box=image.getbbox()
