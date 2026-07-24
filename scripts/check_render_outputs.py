@@ -59,13 +59,17 @@ def check(output: Path) -> dict[str, object]:
     scene = trimesh.load(glb, force="scene")
     nodes = {str(node) for node in scene.graph.nodes}
     normalized_nodes = {node.split(".")[0] for node in nodes}
-    missing = REQUIRED_GLTF_NODES - normalized_nodes
-    if missing:
-        raise AssertionError(f"GLB missing required named nodes: {sorted(missing)}")
     manifest = json.loads((output / "manifest.json").read_text())
     manifest_objects = set(manifest.get("generatedObjectNames", []))
-    if not REQUIRED_GLTF_NODES.issubset(manifest_objects):
-        raise AssertionError("manifest is missing required generated object names")
+    missing_from_manifest = REQUIRED_GLTF_NODES - manifest_objects
+    if missing_from_manifest:
+        raise AssertionError(f"manifest is missing required generated object names: {sorted(missing_from_manifest)}")
+    missing_from_glb = REQUIRED_GLTF_NODES - normalized_nodes
+    if missing_from_glb:
+        raise AssertionError(
+            "GLB is missing required named nodes: "
+            f"{sorted(missing_from_glb)}; exported nodes were {sorted(nodes)}"
+        )
     return {
         "images": image_results,
         "glbBytes": glb.stat().st_size,
