@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { createElement } from "react";
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Studio } from "./studio";
@@ -13,14 +14,14 @@ describe("Studio upload", () => {
   });
 
   it("requires a front product photo and total height", () => {
-    render(<Studio />);
+    render(createElement(Studio));
     expect(screen.getByLabelText(/front product photo/i)).toBeRequired();
     expect(screen.getByLabelText(/total product height/i)).toBeRequired();
     expect(screen.getByLabelText(/clean label artwork/i)).not.toBeRequired();
   });
 
   it("explains the controlled reconstruction before upload", () => {
-    render(<Studio />);
+    render(createElement(Studio));
     expect(screen.getByText(/isolate the product or record the fallback/i)).toBeVisible();
     expect(screen.getByText(/render only after explicit approval/i)).toBeVisible();
   });
