@@ -38,12 +38,16 @@ def create_material(bpy, name: str, color: str, values: dict[str, float], alpha:
     material = bpy.data.materials.new(name)
     material.use_nodes = True
     bsdf = material.node_tree.nodes.get("Principled BSDF")
-    rgba = tuple(int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)) + (alpha,)
+    is_transmissive = values["transmission"] > 0
+    render_alpha = min(alpha, 0.82) if is_transmissive else alpha
+    rgba = tuple(int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)) + (render_alpha,)
     _input(bsdf, "Base Color").default_value = rgba
     _input(bsdf, "Roughness").default_value = values["roughness"]
     transmission = _input(bsdf, "Transmission Weight", "Transmission")
     if transmission is not None:
-        transmission.default_value = values["transmission"]
+        # Eevee's headless CPU path turns high transmission nearly black without an HDRI.
+        # Bound the viewport approximation while preserving the requested value in the spec/manifest.
+        transmission.default_value = min(values["transmission"], 0.38)
     ior = _input(bsdf, "IOR")
     if ior is not None:
         ior.default_value = values["ior"]
@@ -51,17 +55,18 @@ def create_material(bpy, name: str, color: str, values: dict[str, float], alpha:
     if metallic is not None:
         metallic.default_value = values.get("metallic", 0.0)
     coat = _input(bsdf, "Coat Weight", "Clearcoat")
-    if coat is not None and values["transmission"] == 0:
-        coat.default_value = 0.12
+    if coat is not None:
+        coat.default_value = 0.22 if is_transmissive else 0.12
     alpha_input = _input(bsdf, "Alpha")
     if alpha_input is not None:
-        alpha_input.default_value = alpha
-    if alpha < 1:
+        alpha_input.default_value = render_alpha
+    if render_alpha < 1:
         if hasattr(material, "surface_render_method"):
             material.surface_render_method = "DITHERED"
         elif hasattr(material, "blend_method"):
             material.blend_method = "BLEND"
-        material.use_screen_refraction = hasattr(material, "use_screen_refraction")
+        if hasattr(material, "use_screen_refraction"):
+            material.use_screen_refraction = True
     return material
 
 
