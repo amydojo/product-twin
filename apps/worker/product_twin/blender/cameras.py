@@ -2,7 +2,9 @@ from __future__ import annotations
 
 
 def look_at(obj, target=(0.0, 0.0, 45.0)) -> None:
-    direction = tuple(target[index] - obj.location[index] for index in range(3))
+    from mathutils import Vector
+
+    direction = Vector(target) - obj.location
     obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
